@@ -31,9 +31,11 @@ MainWindow::MainWindow(QWidget *parent)
     auto *toolbar = new QHBoxLayout;
     addRectButton = new QPushButton(tr("Add Rectangle"), this);
     addCircleButton = new QPushButton(tr("Add Circle"), this);
+    deleteButton = new QPushButton(tr("Delete Selected"), this);
     printButton = new QPushButton(tr("Print"), this);
     toolbar->addWidget(addRectButton);
     toolbar->addWidget(addCircleButton);
+    toolbar->addWidget(deleteButton);
     toolbar->addStretch();
     toolbar->addWidget(printButton);
     layout->addLayout(toolbar);
@@ -42,6 +44,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(addRectButton, &QPushButton::clicked, this, &MainWindow::addRectangle);
     connect(addCircleButton, &QPushButton::clicked, this, &MainWindow::addCircle);
+    connect(deleteButton, &QPushButton::clicked, this, &MainWindow::deleteSelected);
     connect(printButton, &QPushButton::clicked, this, &MainWindow::printCanvas);
 
     sceneFilePath = QCoreApplication::applicationDirPath() + "/scene.json";
@@ -163,4 +166,10 @@ void MainWindow::closeEvent(QCloseEvent *event)
     if (canvas)
         canvas->saveToFile(sceneFilePath);
     QMainWindow::closeEvent(event);
+}
+
+void MainWindow::deleteSelected()
+{
+    if (canvas)
+        canvas->deleteSelected();
 }

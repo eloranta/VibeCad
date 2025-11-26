@@ -13,11 +13,13 @@ public:
     explicit Canvas(QWidget *parent = nullptr);
     void addRectangle(const QPoint &bottomLeft, const QPoint &topRight);
     void addCircle(const QPoint &center, int radius);
+    void deleteSelected();
     bool saveToFile(const QString &path) const;
     bool loadFromFile(const QString &path);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 private:
     QVector<QRect> worldRectangles;
@@ -25,6 +27,9 @@ private:
     QPoint origin() const;
     QPoint toScreen(const QPoint &world) const;
     QPoint fromScreen(const QPoint &screen) const;
+
+    int selectedRect = -1;
+    int selectedCircle = -1;
 };
 
 #endif // CANVAS_H

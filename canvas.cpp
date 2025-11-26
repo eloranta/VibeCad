@@ -2,6 +2,7 @@
 
 #include <QPainter>
 #include <QPaintEvent>
+#include <QMouseEvent>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -10,7 +11,8 @@
 Canvas::Canvas(QWidget *parent)
     : QWidget(parent)
 {
-    setMinimumSize(400, 300);
+    setMinimumSize(210, 297);
+    resize(210, 297);
     setAutoFillBackground(true);
 }
 
@@ -24,6 +26,18 @@ void Canvas::addRectangle(const QPoint &bottomLeft, const QPoint &topRight)
 void Canvas::addCircle(const QPoint &center, int radius)
 {
     worldCircles.append(qMakePair(center, radius));
+    update();
+}
+
+void Canvas::deleteSelected()
+{
+    if (selectedRect >= 0 && selectedRect < worldRectangles.size())
+        worldRectangles.removeAt(selectedRect);
+    else if (selectedCircle >= 0 && selectedCircle < worldCircles.size())
+        worldCircles.removeAt(selectedCircle);
+
+    selectedRect = -1;
+    selectedCircle = -1;
     update();
 }
 
@@ -114,16 +128,14 @@ void Canvas::paintEvent(QPaintEvent *event)
 
     painter.fillRect(rect(), QColor(245, 245, 245));
 
+    // Highlight A4 area (210x297) in world coords
+    painter.setPen(QPen(QColor(120, 120, 120), 1, Qt::DashLine));
+    painter.setBrush(QColor(230, 230, 230, 80));
+    QRect a4Rect(QPoint(0, 0), QSize(210, 297));
+    QRect screenA4 = QRect(toScreen(a4Rect.bottomLeft()), toScreen(a4Rect.topRight())).normalized();
+    painter.drawRect(screenA4);
+
     painter.setPen(Qt::black);
-    painter.setBrush(QColor(180, 220, 250));
-    painter.drawRect(50, 50, 150, 100);
-
-    painter.setBrush(QColor(200, 180, 230));
-    painter.drawRect(250, 120, 200, 120);
-
-    painter.setBrush(QColor(255, 200, 120));
-    painter.drawEllipse(QPoint(180, 220), 60, 60);
-
     painter.setBrush(QColor(120, 180, 220, 160));
     for (const auto &circle : worldCircles)
     {
@@ -135,6 +147,20 @@ void Canvas::paintEvent(QPaintEvent *event)
     for (const QRect &rect : worldRectangles)
     {
         painter.drawRect(QRect(toScreen(rect.bottomLeft()), toScreen(rect.topRight())).normalized());
+    }
+
+    // Highlight selection
+    painter.setPen(QPen(QColor(220, 80, 80), 2, Qt::DashLine));
+    painter.setBrush(Qt::NoBrush);
+    if (selectedRect >= 0 && selectedRect < worldRectangles.size())
+    {
+        const QRect r = worldRectangles.at(selectedRect);
+        painter.drawRect(QRect(toScreen(r.bottomLeft()), toScreen(r.topRight())).normalized());
+    }
+    if (selectedCircle >= 0 && selectedCircle < worldCircles.size())
+    {
+        const auto &c = worldCircles.at(selectedCircle);
+        painter.drawEllipse(toScreen(c.first), c.second, c.second);
     }
 
     // Draw simple X/Y axes from the anchor point
@@ -187,4 +213,40 @@ QPoint Canvas::fromScreen(const QPoint &screen) const
 {
     const QPoint o = origin();
     return QPoint(screen.x() - o.x(), o.y() - screen.y());
+}
+
+void Canvas::mousePressEvent(QMouseEvent *event)
+{
+    const QPoint worldPos = fromScreen(event->pos());
+
+    // Check rectangles (topmost last)
+    int foundRect = -1;
+    for (int i = worldRectangles.size() - 1; i >= 0; --i)
+    {
+        if (worldRectangles.at(i).contains(worldPos))
+        {
+            foundRect = i;
+            break;
+        }
+    }
+
+    // Check circles
+    int foundCircle = -1;
+    for (int i = worldCircles.size() - 1; i >= 0; --i)
+    {
+        const auto &c = worldCircles.at(i);
+        const QPoint delta = worldPos - c.first;
+        if (QPointF(delta).manhattanLength() <= c.second ||
+            (delta.x() * delta.x() + delta.y() * delta.y()) <= c.second * c.second)
+        {
+            foundCircle = i;
+            break;
+        }
+    }
+
+    selectedRect = foundRect;
+    selectedCircle = foundCircle;
+    update();
+
+    QWidget::mousePressEvent(event);
 }

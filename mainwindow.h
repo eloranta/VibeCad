@@ -26,6 +26,7 @@ private slots:
     void printCanvas();
     void addRectangle();
     void addCircle();
+    void deleteSelected();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -36,6 +37,7 @@ private:
     QPushButton *printButton = nullptr;
     QPushButton *addRectButton = nullptr;
     QPushButton *addCircleButton = nullptr;
+    QPushButton *deleteButton = nullptr;
     QString sceneFilePath;
 };
 #endif // MAINWINDOW_H
