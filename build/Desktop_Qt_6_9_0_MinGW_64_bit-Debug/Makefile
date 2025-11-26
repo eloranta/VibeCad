@@ -307,6 +307,7 @@ Makefile: ../../VibeCad.pro ../../../../Qt/6.9.0/mingw_64/mkspecs/win32-g++/qmak
 		../../../../Qt/6.9.0/mingw_64/mkspecs/features/yacc.prf \
 		../../../../Qt/6.9.0/mingw_64/mkspecs/features/lex.prf \
 		../../VibeCad.pro \
+		../../../../Qt/6.9.0/mingw_64/lib/Qt6PrintSupport.prl \
 		../../../../Qt/6.9.0/mingw_64/lib/Qt6Widgets.prl \
 		../../../../Qt/6.9.0/mingw_64/lib/Qt6Gui.prl \
 		../../../../Qt/6.9.0/mingw_64/lib/Qt6Core.prl \
@@ -550,6 +551,7 @@ Makefile: ../../VibeCad.pro ../../../../Qt/6.9.0/mingw_64/mkspecs/win32-g++/qmak
 ../../../../Qt/6.9.0/mingw_64/mkspecs/features/yacc.prf:
 ../../../../Qt/6.9.0/mingw_64/mkspecs/features/lex.prf:
 ../../VibeCad.pro:
+../../../../Qt/6.9.0/mingw_64/lib/Qt6PrintSupport.prl:
 ../../../../Qt/6.9.0/mingw_64/lib/Qt6Widgets.prl:
 ../../../../Qt/6.9.0/mingw_64/lib/Qt6Gui.prl:
 ../../../../Qt/6.9.0/mingw_64/lib/Qt6Core.prl:
