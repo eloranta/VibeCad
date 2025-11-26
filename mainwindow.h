@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QPoint>
 
 class Canvas;
 class QPushButton;
@@ -22,10 +23,12 @@ public:
 
 private slots:
     void printCanvas();
+    void addRectangle();
 
 private:
     Ui::MainWindow *ui;
     Canvas *canvas = nullptr;
     QPushButton *printButton = nullptr;
+    QPushButton *addRectButton = nullptr;
 };
 #endif // MAINWINDOW_H
