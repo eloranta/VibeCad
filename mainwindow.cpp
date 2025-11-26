@@ -7,16 +7,22 @@
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
+#include <QtMath>
 #include <QLineEdit>
+#include <QMessageBox>
 #include <QPainter>
 #include <QPageLayout>
 #include <QPageSize>
 #include <QMarginsF>
 #include <QPrintDialog>
 #include <QPrinter>
+#include <QPdfWriter>
+#include <QStandardPaths>
+#include <QPdfWriter>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QCloseEvent>
+#include <QDir>
 #include <algorithm>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -64,30 +70,87 @@ void MainWindow::printCanvas()
     if (!canvas)
         return;
 
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setFullPage(true);
-    printer.setPageLayout(QPageLayout(QPageSize(QPageSize::A4), QPageLayout::Landscape, QMarginsF(0, 0, 0, 0)));
-    QPrintDialog dialog(&printer, this);
-    if (dialog.exec() != QDialog::Accepted)
+    const auto tryPrintToPath = [&](const QString &outPath) -> bool {
+        QFileInfo fi(outPath);
+        if (!fi.dir().exists())
+        {
+            QDir().mkpath(fi.dir().absolutePath());
+        }
+
+        QPdfWriter writer(outPath);
+        writer.setPageSize(QPageSize(QPageSize::A4));
+        writer.setPageOrientation(QPageLayout::Landscape);
+        writer.setPageMargins(QMarginsF(0, 0, 0, 0));
+        writer.setResolution(25); // ~1 px per mm
+
+        const QRectF pageRect = writer.pageLayout().paintRectPixels(writer.resolution());
+        if (pageRect.isEmpty())
+            return false;
+
+        const qreal scaleX = writer.resolution() / 25.4; // device units per mm (1 px -> 1 mm)
+        const qreal scaleY = scaleX;
+        if (scaleX <= 0 || scaleY <= 0)
+            return false;
+
+        const qreal targetW = canvas->width() * scaleX;
+        const qreal targetH = canvas->height() * scaleY;
+
+        const int cols = std::max(1, qCeil(targetW / pageRect.width()));
+        const int rows = std::max(1, qCeil(targetH / pageRect.height()));
+
+        QPainter painter(&writer);
+        if (!painter.isActive())
+            return false;
+
+        for (int row = 0; row < rows; ++row)
+        {
+            for (int col = 0; col < cols; ++col)
+            {
+                painter.save();
+                const qreal tx = pageRect.x() - col * pageRect.width();
+                const qreal ty = pageRect.y() - row * pageRect.height();
+                painter.translate(tx, ty);
+                painter.scale(scaleX, scaleY);
+                canvas->render(&painter);
+                painter.restore();
+
+                if (!(row == rows - 1 && col == cols - 1))
+                {
+                    QMessageBox::information(this,
+                                             tr("Debug tile"),
+                                             tr("Printed tile row %1 / %2, col %3 / %4.\n"
+                                                "Tx: %5 Ty: %6\nPageRect: %7 x %8")
+                                                 .arg(row + 1)
+                                                 .arg(rows)
+                                                 .arg(col + 1)
+                                                 .arg(cols)
+                                                 .arg(tx)
+                                                 .arg(ty)
+                                                 .arg(pageRect.width())
+                                                 .arg(pageRect.height()));
+                    writer.newPage();
+                }
+            }
+        }
+
+        QMessageBox::information(this, tr("Printed to PDF"),
+                                 tr("Printed to %1").arg(outPath));
+        return true;
+    };
+
+    const QString primaryPath = QCoreApplication::applicationDirPath() + "/print.pdf";
+    if (tryPrintToPath(primaryPath))
         return;
 
-    QPainter painter(&printer);
-    if (!painter.isActive())
-        return;
-
-    const QRectF pageRect = printer.pageRect(QPrinter::DevicePixel);
-    const qreal scaleX = printer.logicalDpiX() / 25.4; // device units per mm (1 px -> 1 mm)
-    const qreal scaleY = printer.logicalDpiY() / 25.4;
-
-    // Keep origin at bottom-left; allow clipping on right/top if printable area is smaller.
-    qreal tx = pageRect.x(); // left align to printable area
-    qreal ty = pageRect.y() + pageRect.height() - canvas->height() * scaleY; // align origin to bottom
-
-    painter.save();
-    painter.translate(tx, ty);
-    painter.scale(scaleX, scaleY);
-    canvas->render(&painter);
-    painter.restore();
+    const QString fallbackPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+                                 + "/VibeCad/print.pdf";
+    if (!tryPrintToPath(fallbackPath))
+    {
+        QMessageBox::warning(this,
+                             tr("Print failed"),
+                             tr("Could not write PDF to %1 or %2")
+                                 .arg(primaryPath, fallbackPath));
+    }
 }
 
 void MainWindow::addRectangle()
