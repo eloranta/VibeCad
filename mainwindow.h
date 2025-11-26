@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QPoint>
+#include <QString>
 
 class Canvas;
 class QPushButton;
@@ -26,11 +27,15 @@ private slots:
     void addRectangle();
     void addCircle();
 
+protected:
+    void closeEvent(QCloseEvent *event) override;
+
 private:
     Ui::MainWindow *ui;
     Canvas *canvas = nullptr;
     QPushButton *printButton = nullptr;
     QPushButton *addRectButton = nullptr;
     QPushButton *addCircleButton = nullptr;
+    QString sceneFilePath;
 };
 #endif // MAINWINDOW_H

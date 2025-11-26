@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "canvas.h"
 
+#include <QCoreApplication>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -12,6 +13,7 @@
 #include <QPrinter>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include <QCloseEvent>
 #include <algorithm>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -41,6 +43,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(addRectButton, &QPushButton::clicked, this, &MainWindow::addRectangle);
     connect(addCircleButton, &QPushButton::clicked, this, &MainWindow::addCircle);
     connect(printButton, &QPushButton::clicked, this, &MainWindow::printCanvas);
+
+    sceneFilePath = QCoreApplication::applicationDirPath() + "/scene.json";
+    canvas->loadFromFile(sceneFilePath);
 }
 
 MainWindow::~MainWindow()
@@ -151,4 +156,11 @@ void MainWindow::addCircle()
         return;
 
     canvas->addCircle(QPoint(centerX, centerY), radius);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    if (canvas)
+        canvas->saveToFile(sceneFilePath);
+    QMainWindow::closeEvent(event);
 }

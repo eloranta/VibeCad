@@ -2,6 +2,10 @@
 
 #include <QPainter>
 #include <QPaintEvent>
+#include <QFile>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 Canvas::Canvas(QWidget *parent)
     : QWidget(parent)
@@ -12,18 +16,93 @@ Canvas::Canvas(QWidget *parent)
 
 void Canvas::addRectangle(const QPoint &bottomLeft, const QPoint &topRight)
 {
-    const QPoint blScreen = toScreen(bottomLeft);
-    const QPoint trScreen = toScreen(topRight);
-    QRect rect(blScreen, trScreen);
-    rectangles.append(rect.normalized());
+    QRect rect(QPoint(bottomLeft.x(), topRight.y()), QPoint(topRight.x(), bottomLeft.y()));
+    worldRectangles.append(rect.normalized());
     update();
 }
 
 void Canvas::addCircle(const QPoint &center, int radius)
 {
-    const QPoint c = toScreen(center);
-    circles.append(qMakePair(c, radius));
+    worldCircles.append(qMakePair(center, radius));
     update();
+}
+
+bool Canvas::saveToFile(const QString &path) const
+{
+    QJsonObject root;
+    QJsonArray rects;
+    for (const QRect &r : worldRectangles)
+    {
+        QJsonObject rectObj;
+        rectObj["bl_x"] = r.bottomLeft().x();
+        rectObj["bl_y"] = r.bottomLeft().y();
+        rectObj["tr_x"] = r.topRight().x();
+        rectObj["tr_y"] = r.topRight().y();
+        rects.append(rectObj);
+    }
+    root["rectangles"] = rects;
+
+    QJsonArray circArr;
+    for (const auto &c : worldCircles)
+    {
+        QJsonObject circObj;
+        circObj["cx"] = c.first.x();
+        circObj["cy"] = c.first.y();
+        circObj["r"] = c.second;
+        circArr.append(circObj);
+    }
+    root["circles"] = circArr;
+
+    QJsonDocument doc(root);
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly))
+        return false;
+    file.write(doc.toJson(QJsonDocument::Compact));
+    return true;
+}
+
+bool Canvas::loadFromFile(const QString &path)
+{
+    QFile file(path);
+    if (!file.exists())
+        return false;
+    if (!file.open(QIODevice::ReadOnly))
+        return false;
+
+    const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    if (!doc.isObject())
+        return false;
+
+    worldRectangles.clear();
+    worldCircles.clear();
+
+    const QJsonObject root = doc.object();
+
+    const QJsonArray rects = root.value("rectangles").toArray();
+    for (const QJsonValue &v : rects)
+    {
+        const QJsonObject o = v.toObject();
+        const int blx = o.value("bl_x").toInt();
+        const int bly = o.value("bl_y").toInt();
+        const int trx = o.value("tr_x").toInt();
+        const int try_ = o.value("tr_y").toInt();
+        QRect rect(QPoint(blx, bly), QPoint(trx, try_));
+        worldRectangles.append(rect.normalized());
+    }
+
+    const QJsonArray circArr = root.value("circles").toArray();
+    for (const QJsonValue &v : circArr)
+    {
+        const QJsonObject o = v.toObject();
+        const int cx = o.value("cx").toInt();
+        const int cy = o.value("cy").toInt();
+        const int r = o.value("r").toInt();
+        if (r > 0)
+            worldCircles.append(qMakePair(QPoint(cx, cy), r));
+    }
+
+    update();
+    return true;
 }
 
 void Canvas::paintEvent(QPaintEvent *event)
@@ -46,15 +125,16 @@ void Canvas::paintEvent(QPaintEvent *event)
     painter.drawEllipse(QPoint(180, 220), 60, 60);
 
     painter.setBrush(QColor(120, 180, 220, 160));
-    for (const auto &circle : circles)
+    for (const auto &circle : worldCircles)
     {
-        painter.drawEllipse(circle.first, circle.second, circle.second);
+        const QPoint c = toScreen(circle.first);
+        painter.drawEllipse(c, circle.second, circle.second);
     }
 
     painter.setBrush(QColor(160, 200, 140, 180));
-    for (const QRect &rect : rectangles)
+    for (const QRect &rect : worldRectangles)
     {
-        painter.drawRect(rect);
+        painter.drawRect(QRect(toScreen(rect.bottomLeft()), toScreen(rect.topRight())).normalized());
     }
 
     // Draw simple X/Y axes from the anchor point
@@ -101,4 +181,10 @@ QPoint Canvas::toScreen(const QPoint &world) const
     // World coordinates: x to the right, y upwards from origin
     const QPoint o = origin();
     return QPoint(o.x() + world.x(), o.y() - world.y());
+}
+
+QPoint Canvas::fromScreen(const QPoint &screen) const
+{
+    const QPoint o = origin();
+    return QPoint(screen.x() - o.x(), o.y() - screen.y());
 }
