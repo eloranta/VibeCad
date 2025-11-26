@@ -12,9 +12,10 @@ Canvas::Canvas(QWidget *parent)
 
 void Canvas::addRectangle(const QPoint &bottomLeft, const QPoint &topRight)
 {
-    QRect rect(QPoint(bottomLeft.x(), topRight.y()), QPoint(topRight.x(), bottomLeft.y()));
-    rect = rect.normalized();
-    rectangles.append(rect);
+    const QPoint blScreen = toScreen(bottomLeft);
+    const QPoint trScreen = toScreen(topRight);
+    QRect rect(blScreen, trScreen);
+    rectangles.append(rect.normalized());
     update();
 }
 
@@ -45,25 +46,25 @@ void Canvas::paintEvent(QPaintEvent *event)
 
     // Draw simple X/Y axes from the anchor point
     const int margin = 20;
-    const QPoint origin = originPoint;
-    const QPoint xEnd(width() - margin, origin.y());
-    const QPoint yEnd(origin.x(), height() - margin);
+    const QPoint o = origin();
+    const QPoint xEnd(width() - margin, o.y());
+    const QPoint yEnd(o.x(), margin);
 
     painter.setPen(QPen(Qt::darkGray, 2));
-    painter.drawLine(origin, xEnd);
-    painter.drawLine(origin, yEnd);
+    painter.drawLine(o, xEnd);
+    painter.drawLine(o, yEnd);
 
     // Tick marks every 100 px
     const int tickLen = 6;
-    for (int x = origin.x() + 100; x <= xEnd.x(); x += 100)
+    for (int x = o.x() + 100; x <= xEnd.x(); x += 100)
     {
-        painter.drawLine(QPoint(x, origin.y() - tickLen), QPoint(x, origin.y() + tickLen));
-        painter.drawText(QPoint(x - 10, origin.y() - 8), QString::number(x - origin.x()));
+        painter.drawLine(QPoint(x, o.y() - tickLen), QPoint(x, o.y() + tickLen));
+        painter.drawText(QPoint(x - 12, o.y() - 8), QString::number(x - o.x()));
     }
-    for (int y = origin.y() + 100; y <= yEnd.y(); y += 100)
+    for (int y = o.y() - 100; y >= yEnd.y(); y -= 100)
     {
-        painter.drawLine(QPoint(origin.x() - tickLen, y), QPoint(origin.x() + tickLen, y));
-        painter.drawText(QPoint(origin.x() + 8, y + 4), QString::number(y - origin.y()));
+        painter.drawLine(QPoint(o.x() - tickLen, y), QPoint(o.x() + tickLen, y));
+        painter.drawText(QPoint(o.x() + 8, y + 4), QString::number(o.y() - y));
     }
 
     // Arrow heads
@@ -75,4 +76,16 @@ void Canvas::paintEvent(QPaintEvent *event)
     painter.setPen(Qt::darkGray);
     painter.drawText(xEnd + QPoint(-15, -8), "X");
     painter.drawText(yEnd + QPoint(8, -12), "Y");
+}
+
+QPoint Canvas::origin() const
+{
+    return QPoint(40, height() - 40);
+}
+
+QPoint Canvas::toScreen(const QPoint &world) const
+{
+    // World coordinates: x to the right, y upwards from origin
+    const QPoint o = origin();
+    return QPoint(o.x() + world.x(), o.y() - world.y());
 }

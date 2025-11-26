@@ -18,7 +18,8 @@ protected:
 
 private:
     QVector<QRect> rectangles;
-    QPoint originPoint = QPoint(40, 40);
+    QPoint origin() const;
+    QPoint toScreen(const QPoint &world) const;
 };
 
 #endif // CANVAS_H
