@@ -11,14 +11,14 @@ class Canvas : public QWidget
 
 public:
     explicit Canvas(QWidget *parent = nullptr);
-    void addRectangle(const QPoint &oppositeCorner);
+    void addRectangle(const QPoint &bottomLeft, const QPoint &topRight);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
 
 private:
     QVector<QRect> rectangles;
-    QPoint anchorPoint = QPoint(40, 40);
+    QPoint originPoint = QPoint(40, 40);
 };
 
 #endif // CANVAS_H

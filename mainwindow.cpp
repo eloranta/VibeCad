@@ -81,12 +81,18 @@ void MainWindow::addRectangle()
     dialog.setWindowTitle(tr("Add Rectangle"));
 
     auto *form = new QFormLayout(&dialog);
-    auto *xEdit = new QLineEdit(&dialog);
-    auto *yEdit = new QLineEdit(&dialog);
-    xEdit->setPlaceholderText(tr("e.g. 200"));
-    yEdit->setPlaceholderText(tr("e.g. 150"));
-    form->addRow(tr("Opposite corner X:"), xEdit);
-    form->addRow(tr("Opposite corner Y:"), yEdit);
+    auto *blX = new QLineEdit(&dialog);
+    auto *blY = new QLineEdit(&dialog);
+    auto *trX = new QLineEdit(&dialog);
+    auto *trY = new QLineEdit(&dialog);
+    blX->setPlaceholderText(tr("e.g. 60"));
+    blY->setPlaceholderText(tr("e.g. 180"));
+    trX->setPlaceholderText(tr("e.g. 220"));
+    trY->setPlaceholderText(tr("e.g. 40"));
+    form->addRow(tr("Bottom-left X:"), blX);
+    form->addRow(tr("Bottom-left Y:"), blY);
+    form->addRow(tr("Top-right X:"), trX);
+    form->addRow(tr("Top-right Y:"), trY);
 
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
     form->addWidget(buttons);
@@ -96,12 +102,13 @@ void MainWindow::addRectangle()
     if (dialog.exec() != QDialog::Accepted)
         return;
 
-    bool okX = false;
-    bool okY = false;
-    const int x = xEdit->text().toInt(&okX);
-    const int y = yEdit->text().toInt(&okY);
-    if (!okX || !okY)
+    bool okBlX = false, okBlY = false, okTrX = false, okTrY = false;
+    const int blx = blX->text().toInt(&okBlX);
+    const int bly = blY->text().toInt(&okBlY);
+    const int trx = trX->text().toInt(&okTrX);
+    const int try_ = trY->text().toInt(&okTrY);
+    if (!okBlX || !okBlY || !okTrX || !okTrY)
         return;
 
-    canvas->addRectangle(QPoint(x, y));
+    canvas->addRectangle(QPoint(blx, bly), QPoint(trx, try_));
 }

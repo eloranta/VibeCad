@@ -10,9 +10,9 @@ Canvas::Canvas(QWidget *parent)
     setAutoFillBackground(true);
 }
 
-void Canvas::addRectangle(const QPoint &oppositeCorner)
+void Canvas::addRectangle(const QPoint &bottomLeft, const QPoint &topRight)
 {
-    QRect rect(anchorPoint, oppositeCorner);
+    QRect rect(QPoint(bottomLeft.x(), topRight.y()), QPoint(topRight.x(), bottomLeft.y()));
     rect = rect.normalized();
     rectangles.append(rect);
     update();
@@ -45,7 +45,7 @@ void Canvas::paintEvent(QPaintEvent *event)
 
     // Draw simple X/Y axes from the anchor point
     const int margin = 20;
-    const QPoint origin = anchorPoint;
+    const QPoint origin = originPoint;
     const QPoint xEnd(width() - margin, origin.y());
     const QPoint yEnd(origin.x(), height() - margin);
 
