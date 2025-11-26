@@ -24,11 +24,13 @@ public:
 private slots:
     void printCanvas();
     void addRectangle();
+    void addCircle();
 
 private:
     Ui::MainWindow *ui;
     Canvas *canvas = nullptr;
     QPushButton *printButton = nullptr;
     QPushButton *addRectButton = nullptr;
+    QPushButton *addCircleButton = nullptr;
 };
 #endif // MAINWINDOW_H

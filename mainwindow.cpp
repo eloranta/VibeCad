@@ -28,8 +28,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     auto *toolbar = new QHBoxLayout;
     addRectButton = new QPushButton(tr("Add Rectangle"), this);
+    addCircleButton = new QPushButton(tr("Add Circle"), this);
     printButton = new QPushButton(tr("Print"), this);
     toolbar->addWidget(addRectButton);
+    toolbar->addWidget(addCircleButton);
     toolbar->addStretch();
     toolbar->addWidget(printButton);
     layout->addLayout(toolbar);
@@ -37,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->centralwidget->setLayout(layout);
 
     connect(addRectButton, &QPushButton::clicked, this, &MainWindow::addRectangle);
+    connect(addCircleButton, &QPushButton::clicked, this, &MainWindow::addCircle);
     connect(printButton, &QPushButton::clicked, this, &MainWindow::printCanvas);
 }
 
@@ -111,4 +114,41 @@ void MainWindow::addRectangle()
         return;
 
     canvas->addRectangle(QPoint(blx, bly), QPoint(trx, try_));
+}
+
+void MainWindow::addCircle()
+{
+    if (!canvas)
+        return;
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("Add Circle"));
+
+    auto *form = new QFormLayout(&dialog);
+    auto *cx = new QLineEdit(&dialog);
+    auto *cy = new QLineEdit(&dialog);
+    auto *r = new QLineEdit(&dialog);
+    cx->setPlaceholderText(tr("e.g. 120"));
+    cy->setPlaceholderText(tr("e.g. 80"));
+    r->setPlaceholderText(tr("e.g. 40"));
+    form->addRow(tr("Center X:"), cx);
+    form->addRow(tr("Center Y:"), cy);
+    form->addRow(tr("Radius:"), r);
+
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    form->addWidget(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    bool okCx = false, okCy = false, okR = false;
+    const int centerX = cx->text().toInt(&okCx);
+    const int centerY = cy->text().toInt(&okCy);
+    const int radius = r->text().toInt(&okR);
+    if (!okCx || !okCy || !okR || radius <= 0)
+        return;
+
+    canvas->addCircle(QPoint(centerX, centerY), radius);
 }

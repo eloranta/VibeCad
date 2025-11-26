@@ -19,6 +19,13 @@ void Canvas::addRectangle(const QPoint &bottomLeft, const QPoint &topRight)
     update();
 }
 
+void Canvas::addCircle(const QPoint &center, int radius)
+{
+    const QPoint c = toScreen(center);
+    circles.append(qMakePair(c, radius));
+    update();
+}
+
 void Canvas::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
@@ -37,6 +44,12 @@ void Canvas::paintEvent(QPaintEvent *event)
 
     painter.setBrush(QColor(255, 200, 120));
     painter.drawEllipse(QPoint(180, 220), 60, 60);
+
+    painter.setBrush(QColor(120, 180, 220, 160));
+    for (const auto &circle : circles)
+    {
+        painter.drawEllipse(circle.first, circle.second, circle.second);
+    }
 
     painter.setBrush(QColor(160, 200, 140, 180));
     for (const QRect &rect : rectangles)
