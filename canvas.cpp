@@ -11,8 +11,8 @@
 Canvas::Canvas(QWidget *parent)
     : QWidget(parent)
 {
-    setMinimumSize(210, 297);
-    resize(210, 297);
+    setMinimumSize(297, 210);
+    resize(297, 210);
     setAutoFillBackground(true);
 }
 
@@ -131,7 +131,7 @@ void Canvas::paintEvent(QPaintEvent *event)
     // Highlight A4 area (210x297) in world coords
     painter.setPen(QPen(QColor(120, 120, 120), 1, Qt::DashLine));
     painter.setBrush(QColor(230, 230, 230, 80));
-    QRect a4Rect(QPoint(0, 0), QSize(210, 297));
+    QRect a4Rect(QPoint(0, 0), QSize(297, 210));
     QRect screenA4 = QRect(toScreen(a4Rect.bottomLeft()), toScreen(a4Rect.topRight())).normalized();
     painter.drawRect(screenA4);
 

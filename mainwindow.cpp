@@ -9,6 +9,9 @@
 #include <QHBoxLayout>
 #include <QLineEdit>
 #include <QPainter>
+#include <QPageLayout>
+#include <QPageSize>
+#include <QMarginsF>
 #include <QPrintDialog>
 #include <QPrinter>
 #include <QPushButton>
@@ -62,6 +65,8 @@ void MainWindow::printCanvas()
         return;
 
     QPrinter printer(QPrinter::HighResolution);
+    printer.setFullPage(true);
+    printer.setPageLayout(QPageLayout(QPageSize(QPageSize::A4), QPageLayout::Landscape, QMarginsF(0, 0, 0, 0)));
     QPrintDialog dialog(&printer, this);
     if (dialog.exec() != QDialog::Accepted)
         return;
@@ -71,14 +76,16 @@ void MainWindow::printCanvas()
         return;
 
     const QRectF pageRect = printer.pageRect(QPrinter::DevicePixel);
-    const QSize canvasSize = canvas->size();
-    const qreal xScale = pageRect.width() / canvasSize.width();
-    const qreal yScale = pageRect.height() / canvasSize.height();
-    const qreal scale = std::min(xScale, yScale);
+    const qreal scaleX = printer.logicalDpiX() / 25.4; // device units per mm (1 px -> 1 mm)
+    const qreal scaleY = printer.logicalDpiY() / 25.4;
+
+    // Keep origin at bottom-left; allow clipping on right/top if printable area is smaller.
+    qreal tx = pageRect.x(); // left align to printable area
+    qreal ty = pageRect.y() + pageRect.height() - canvas->height() * scaleY; // align origin to bottom
 
     painter.save();
-    painter.translate(pageRect.x(), pageRect.y());
-    painter.scale(scale, scale);
+    painter.translate(tx, ty);
+    painter.scale(scaleX, scaleY);
     canvas->render(&painter);
     painter.restore();
 }
