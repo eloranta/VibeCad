@@ -18,11 +18,11 @@
 #include <QPrinter>
 #include <QPdfWriter>
 #include <QStandardPaths>
-#include <QPdfWriter>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QCloseEvent>
 #include <QDir>
+#include <QImage>
 #include <algorithm>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -115,26 +115,12 @@ void MainWindow::printCanvas()
                 painter.restore();
 
                 if (!(row == rows - 1 && col == cols - 1))
-                {
-                    QMessageBox::information(this,
-                                             tr("Debug tile"),
-                                             tr("Printed tile row %1 / %2, col %3 / %4.\n"
-                                                "Tx: %5 Ty: %6\nPageRect: %7 x %8")
-                                                 .arg(row + 1)
-                                                 .arg(rows)
-                                                 .arg(col + 1)
-                                                 .arg(cols)
-                                                 .arg(tx)
-                                                 .arg(ty)
-                                                 .arg(pageRect.width())
-                                                 .arg(pageRect.height()));
                     writer.newPage();
-                }
             }
         }
 
-        QMessageBox::information(this, tr("Printed to PDF"),
-                                 tr("Printed to %1").arg(outPath));
+    QMessageBox::information(this, tr("Printed to PDF"),
+                             tr("Printed to %1").arg(outPath));
         return true;
     };
 
@@ -144,13 +130,34 @@ void MainWindow::printCanvas()
 
     const QString fallbackPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
                                  + "/VibeCad/print.pdf";
-    if (!tryPrintToPath(fallbackPath))
+    if (tryPrintToPath(fallbackPath))
+        return;
+
+    // Fallback to PNG tiles for debugging
+    const QString pngDirPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)
+                               + "/VibeCad/print_tiles";
+    QDir().mkpath(pngDirPath);
+    const QSizeF pageSizePx(297.0, 210.0); // 1 px == 1 mm
+    const int cols = std::max(1, qCeil(canvas->width() / pageSizePx.width()));
+    const int rows = std::max(1, qCeil(canvas->height() / pageSizePx.height()));
+    for (int row = 0; row < rows; ++row)
     {
-        QMessageBox::warning(this,
-                             tr("Print failed"),
-                             tr("Could not write PDF to %1 or %2")
-                                 .arg(primaryPath, fallbackPath));
+        for (int col = 0; col < cols; ++col)
+        {
+            QImage img(pageSizePx.toSize(), QImage::Format_ARGB32_Premultiplied);
+            img.fill(Qt::white);
+            QPainter p(&img);
+            p.setRenderHint(QPainter::Antialiasing, true);
+            p.translate(-col * pageSizePx.width(), row * pageSizePx.height() - canvas->height());
+            canvas->render(&p);
+            p.end();
+            img.save(QString("%1/tile_r%2_c%3.png").arg(pngDirPath).arg(row).arg(col));
+        }
     }
+    QMessageBox::warning(this,
+                         tr("Print failed"),
+                         tr("Could not write PDF to %1 or %2. PNG tiles saved to %3")
+                             .arg(primaryPath, fallbackPath, pngDirPath));
 }
 
 void MainWindow::addRectangle()
